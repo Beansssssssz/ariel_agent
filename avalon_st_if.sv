@@ -94,6 +94,33 @@ interface avalon_st_if #(int unsigned DATA_WIDTH_IN_BYTES = 4)(input logic clk);
     function void CLEAR_SLAVE_CB();
         slave_cb.rdy <= 1'b0;
     endfunction
+
+    // Drives the master signals based on the received value
+    function void drive_master();
+        
+    endfunction
+
+    // Drives the master signals based on the received change
+    task drive_slave(input int rdy_high_percentage);
+        int rdy_low_percentage;
+        bit rdy;
+
+        if(rdy_high_percentage >= 100)
+            rdy_high_percentage = 100;
+        rdy_low_percentage = 100 - rdy_high_percentage;
+
+        // infinite loop, meaning always alter the rdy value
+        forever begin
+        @(slave_cb);
+
+            std::randomize(rdy) with {
+                rdy dist {1 := rdy_high_percentage,
+                        0 := rdy_low_percentage};
+            };
+            slave_cb.rdy <= rdy;
+        end
+        
+    endtask
 endinterface
 
 `endif

@@ -59,7 +59,6 @@ module tb ();
     //////////////////////////////////////////////////////////////////////////////
     // Test logic.
     initial begin
-    	
-    	// TODO - Insert TB logic here.
+    	vif.drive_slave(50);
     end
 endmodule
