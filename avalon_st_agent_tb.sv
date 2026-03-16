@@ -25,7 +25,7 @@ module tb ();
     // Interface declaration.
     avalon_st_if#(.DATA_WIDTH_IN_BYTES(DATA_WIDTH_IN_BYTES)) vif (.clk(clk));
 
-    // TODO - Declare your classes here.
+    byte data_to_send[$];
 
     //////////////////////////////////////////////////////////////////////////////
     // General processes.
@@ -60,5 +60,7 @@ module tb ();
     // Test logic.
     initial begin
     	vif.drive_slave(50);
+        data_to_send = {0,0,0,0};
+        vif.drive_master(data_to_send);
     end
 endmodule
