@@ -4,8 +4,9 @@
 // Description : Top TB module for Agent Exercise.
 // -----------------------------------------------------------------------------
 
-// TODO - Add includes here!
-`include "avalon_st_if.sv"
+`include "design.sv"
+`include "avalon_st_driver.sv"
+
 
 module tb ();
 
@@ -24,6 +25,8 @@ module tb ();
 
     // Interface declaration.
     avalon_st_if#(.DATA_WIDTH_IN_BYTES(DATA_WIDTH_IN_BYTES)) vif (.clk(clk));
+    avalon_st_driver master_driver;
+    avalon_st_driver slave_driver;
 
     byte data_to_send[$];
 
@@ -32,6 +35,8 @@ module tb ();
     //////////////////////////////////////////////////////////////////////////////
     // Generate clock.
     initial begin
+        master_driver = new (vif, 70);
+      slave_driver = new (vif, 70, 1'b1);
         clk = 0;
         forever #5 clk = ~clk; 
     end
@@ -59,8 +64,7 @@ module tb ();
     //////////////////////////////////////////////////////////////////////////////
     // Test logic.
     initial begin
-    	vif.drive_slave(50);
-        data_to_send = {0,0,0,0};
-        vif.drive_master(data_to_send);
+        data_to_send = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+        master_driver.drive(data_to_send);
     end
 endmodule
