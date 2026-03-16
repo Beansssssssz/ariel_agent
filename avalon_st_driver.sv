@@ -4,7 +4,7 @@ class avalon_st_driver #(int DATA_WIDTH_IN_BYTES = 4);
     int unsigned valid_rdy_percentage, rdy_low_percentage;
     bit slave;
 
-    function new(input virtual avalon_st_if #(DATA_WIDTH_IN_BYTES) vif, input int unsigned VALID_RDY_PERCENTAGE = 100, input bit slave);
+    function new(input virtual avalon_st_if #(DATA_WIDTH_IN_BYTES) vif, input int unsigned VALID_RDY_PERCENTAGE = 100, input bit slave = 1'b0);
         valid_rdy_percentage = VALID_RDY_PERCENTAGE;
         if(VALID_RDY_PERCENTAGE >= 100)
             valid_rdy_percentage = 100;
@@ -36,6 +36,8 @@ class avalon_st_driver #(int DATA_WIDTH_IN_BYTES = 4);
         word_count = (length + DATA_WIDTH_IN_BYTES - 1) / DATA_WIDTH_IN_BYTES;
         og_word_count = word_count;
 
+        valid = 1'b0;
+
         // Driving words
         while (word_count > 0) begin
 
@@ -57,13 +59,15 @@ class avalon_st_driver #(int DATA_WIDTH_IN_BYTES = 4);
             // Check if current word is last
             vif.master_cb.eop   <= (word_count == 1);
 
-            
-            std::randomize(valid) with {
-                valid dist {
-                    1 := valid_rdy_percentage,
-                    0 := rdy_low_percentage
+            if(!valid) begin
+                std::randomize(valid) with {
+                    valid dist {
+                        1 := valid_rdy_percentage,
+                        0 := rdy_low_percentage
+                    };
                 };
-            };
+
+            end
             vif.master_cb.valid <= valid;
 
             // Send current word
@@ -73,8 +77,10 @@ class avalon_st_driver #(int DATA_WIDTH_IN_BYTES = 4);
             vif.master_cb.empty <= (DATA_WIDTH_IN_BYTES - (length % DATA_WIDTH_IN_BYTES)) % DATA_WIDTH_IN_BYTES;
 
             // If rdy is high then increase word count
-            if (vif.master_cb.rdy && valid)
+            if (vif.master_cb.rdy && valid) begin
                 word_count--;
+                valid = 1'b0;                
+            end
         end
 
         // Reset valid after sending

@@ -36,7 +36,7 @@ module tb ();
     // Generate clock.
     initial begin
         master_driver = new (vif, 70);
-      slave_driver = new (vif, 70, 1'b1);
+        slave_driver = new (vif, 70, 1'b1);
         clk = 0;
         forever #5 clk = ~clk; 
     end
