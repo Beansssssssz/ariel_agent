@@ -64,7 +64,23 @@ module tb ();
     //////////////////////////////////////////////////////////////////////////////
     // Test logic.
     initial begin
-        data_to_send = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+        create_random_byte_array(data_to_send);
         master_driver.drive(data_to_send);
     end
+
+    task create_random_byte_array(output byte data[$]);
+        int unsigned length;
+        byte current_byte;
+
+        // Creating random length
+        std::randomize(length) with {
+            length inside {[1 : 1000]}; 
+        };
+        
+        // Creating random byte array
+        for(int i = 0; i < length; i++) begin
+            std::randomize(current_byte);
+            data.push_front(current_byte);
+        end
+    endtask
 endmodule
