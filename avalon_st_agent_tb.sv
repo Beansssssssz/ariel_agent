@@ -16,6 +16,8 @@ module tb ();
     // Data width.
     localparam int unsigned DATA_WIDTH_IN_BYTES  = 4;
     localparam int unsigned VALID_RDY_PERCENTAGE = 70;
+    localparam int unsigned MAX_NUM_OF_MESSAGES = 10;
+    localparam int unsigned MAX_WAIT_BETWEEN_MESSAGES = 100;
     
 
     //////////////////////////////////////////////////////////////////////////////
@@ -31,6 +33,9 @@ module tb ();
     avalon_st_driver #(.DATA_WIDTH_IN_BYTES(DATA_WIDTH_IN_BYTES), .VALID_RDY_PERCENTAGE(VALID_RDY_PERCENTAGE), .IS_MASTER(1'b0)) slave_driver;
 
     byte data_to_send[$];
+
+    int num_of_messages;
+    int delay_between_messages;
 
     //////////////////////////////////////////////////////////////////////////////
     // General processes.
@@ -50,11 +55,6 @@ module tb ();
         rst_n = 1;
     end
 
-    // Timeout.
-    initial begin
-        #(10000) $finish;
-    end
-
     // Waves dump.
     initial begin
         $dumpfile("dump.vcd");
@@ -66,8 +66,23 @@ module tb ();
     //////////////////////////////////////////////////////////////////////////////
     // Test logic.
     initial begin
-        create_random_byte_array(data_to_send);
-        master_driver.drive_master(data_to_send);
+        // randomize how many messages to send
+        std::randomize(num_of_messages) with {
+            num_of_messages inside {[1 : MAX_NUM_OF_MESSAGES]}; 
+        };
+
+        for (int i = 0; i < num_of_messages; i++) begin
+            create_random_byte_array(data_to_send);
+            master_driver.drive_master(data_to_send);
+
+            // Randomize wait time between messages
+            std::randomize(delay_between_messages) with {
+                delay_between_messages inside {[1 : MAX_NUM_OF_MESSAGES]}; 
+            };
+            #delay_between_messages;
+        end
+
+        $finish("Finished tb");
     end
 
     task create_random_byte_array(output byte data[$]);

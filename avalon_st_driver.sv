@@ -54,7 +54,7 @@ class avalon_st_driver #(int DATA_WIDTH_IN_BYTES = 4, int unsigned VALID_RDY_PER
             @(vif.master_cb);
 
             // Send SOP only if its first word
-            vif.master_cb.sop   <= (words.size() == 0);
+            vif.master_cb.sop   <= (words.size() == num_words);
 
             // Send EOP only if current word is last
             vif.master_cb.eop   <= (words.size() == 1);
