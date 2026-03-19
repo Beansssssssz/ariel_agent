@@ -14,7 +14,9 @@ module tb ();
     // Parameters.
     //////////////////////////////////////////////////////////////////////////////
     // Data width.
-    localparam int unsigned DATA_WIDTH_IN_BYTES = 4;
+    localparam int unsigned DATA_WIDTH_IN_BYTES  = 4;
+    localparam int unsigned VALID_RDY_PERCENTAGE = 70;
+    
 
     //////////////////////////////////////////////////////////////////////////////
     // Declarations.
@@ -25,8 +27,8 @@ module tb ();
 
     // Interface declaration.
     avalon_st_if#(.DATA_WIDTH_IN_BYTES(DATA_WIDTH_IN_BYTES)) vif (.clk(clk));
-    avalon_st_driver master_driver;
-    avalon_st_driver slave_driver;
+    avalon_st_driver #(.DATA_WIDTH_IN_BYTES(DATA_WIDTH_IN_BYTES), .VALID_RDY_PERCENTAGE(VALID_RDY_PERCENTAGE), .IS_MASTER(1'b1)) master_driver;
+    avalon_st_driver #(.DATA_WIDTH_IN_BYTES(DATA_WIDTH_IN_BYTES), .VALID_RDY_PERCENTAGE(VALID_RDY_PERCENTAGE), .IS_MASTER(1'b0)) slave_driver;
 
     byte data_to_send[$];
 
@@ -35,8 +37,8 @@ module tb ();
     //////////////////////////////////////////////////////////////////////////////
     // Generate clock.
     initial begin
-        master_driver = new (vif, 70);
-        slave_driver = new (vif, 70, 1'b1);
+        master_driver = new (vif);
+        slave_driver = new (vif);
         clk = 0;
         forever #5 clk = ~clk; 
     end
@@ -65,22 +67,15 @@ module tb ();
     // Test logic.
     initial begin
         create_random_byte_array(data_to_send);
-        master_driver.drive(data_to_send);
+        master_driver.drive_master(data_to_send);
     end
 
     task create_random_byte_array(output byte data[$]);
-        int unsigned length;
-        byte current_byte;
+        localparam int MAX_MESSAGE_SIZE_IN_BYTES = 1000;
 
-        // Creating random length
-        std::randomize(length) with {
-            length inside {[1 : 1000]}; 
-        };
-        
         // Creating random byte array
-        for(int i = 0; i < length; i++) begin
-            std::randomize(current_byte);
-            data.push_front(current_byte);
-        end
+        std::randomize(data) with {
+            data.size() inside {[1 : MAX_MESSAGE_SIZE_IN_BYTES]}; 
+        };
     endtask
 endmodule

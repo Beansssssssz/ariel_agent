@@ -1,118 +1,103 @@
-class avalon_st_driver #(int DATA_WIDTH_IN_BYTES = 4);
+class avalon_st_driver #(int DATA_WIDTH_IN_BYTES = 4, int unsigned VALID_RDY_PERCENTAGE = 100, bit IS_MASTER = 1'b1);
 
     virtual avalon_st_if #(DATA_WIDTH_IN_BYTES) vif;
-    int unsigned valid_rdy_percentage, rdy_low_percentage;
-    bit slave;
 
-    function new(input virtual avalon_st_if #(DATA_WIDTH_IN_BYTES) vif, input int unsigned VALID_RDY_PERCENTAGE = 100, input bit slave = 1'b0);
-        valid_rdy_percentage = VALID_RDY_PERCENTAGE;
-        if(VALID_RDY_PERCENTAGE >= 100)
-            valid_rdy_percentage = 100;
-        rdy_low_percentage = 100 - valid_rdy_percentage;
-
+    function new(virtual avalon_st_if #(DATA_WIDTH_IN_BYTES) vif);
         this.vif = vif;
-        this.slave = slave;
 
         // If its slave start a fork to always change the data
-        if(slave) begin
+        if(~IS_MASTER) begin
             fork
-                begin
-                    drive_slave();
-                end
+                drive_slave();
             join_none
         end
     endfunction
 
-    // Drives the master signals based on the received value
-    task drive_master(input byte data[$]);
-        int length, word_count, og_word_count, byte_index;
+        // Drives the master signals based on the received value
+    // ─── Helper: pack a byte queue into words ───────────────────────────────────
+    function automatic void bytes_to_words(
+        input  byte                                          data[$],
+        output logic [DATA_WIDTH_IN_BYTES*8-1:0]             words[$]
+    );
+        int num_words;
+        int byte_idx;
+
+        words.delete();
+        num_words = (data.size() + DATA_WIDTH_IN_BYTES - 1) / DATA_WIDTH_IN_BYTES;
+
+        for (int w = 0; w < num_words; w++) begin
+            logic [DATA_WIDTH_IN_BYTES*8-1:0] word = '0;
+            for (int b = 0; b < DATA_WIDTH_IN_BYTES; b++) begin
+                byte_idx = w * DATA_WIDTH_IN_BYTES + b;
+                if (byte_idx < data.size())
+                    // place byte b at its lane; adjust endianness here if needed
+                    word[b*8 +: 8] = data[byte_idx];
+            end
+            words.push_back(word);
+        end
+    endfunction
+
+    task drive_master(byte data[$]);
+        logic [DATA_WIDTH_IN_BYTES * $bits(byte) - 1 : 0] words[$];
+        int num_words;
         bit valid;
 
-        logic [DATA_WIDTH_IN_BYTES * $bits(byte) - 1 : 0] word;
+        // Build the word array from the raw byte stream
+        words = {<<DATA_WIDTH_IN_BYTES{data}};
+        num_words = words.size();
+        valid     = 1'b0;
 
-        length = data.size();
+        // Drive each word
+        while (words.size() > 0) begin
 
-        // correct word count
-        word_count = (length + DATA_WIDTH_IN_BYTES - 1) / DATA_WIDTH_IN_BYTES;
-        og_word_count = word_count;
-
-        valid = 1'b0;
-
-        // Driving words
-        while (word_count > 0) begin
-
-            // pack bytes into word
-            word = '0;
-            for (int i = 0; i < DATA_WIDTH_IN_BYTES; i++) begin
-                byte_index = (og_word_count - word_count) * DATA_WIDTH_IN_BYTES + i;
-
-                if (byte_index < length)
-                    word[i*$bits(byte) +: $bits(byte)] = data[byte_index];
-            end
-
-            // Sync clock
+            // Sync with clock
             @(vif.master_cb);
 
-            // Check if current word is first
-            vif.master_cb.sop   <= (og_word_count == word_count);
+            // Send SOP only if its first word
+            vif.master_cb.sop   <= (words.size() == 0);
 
-            // Check if current word is last
-            vif.master_cb.eop   <= (word_count == 1);
+            // Send EOP only if current word is last
+            vif.master_cb.eop   <= (words.size() == 1);
 
-            if(!valid) begin
-                std::randomize(valid) with {
-                    valid dist {
-                        1 := valid_rdy_percentage,
-                        0 := rdy_low_percentage
-                    };
-                };
-
-            end
+               // iF valid if true, hold it until transaction
+            if (!valid)
+                valid = rand_bit();
             vif.master_cb.valid <= valid;
 
-            // Send current word
-            vif.master_cb.data  <= word;
+            // Send current first word
+            vif.master_cb.data  <= words[0];
 
-            // Send empty always
-            vif.master_cb.empty <= (DATA_WIDTH_IN_BYTES - (length % DATA_WIDTH_IN_BYTES)) % DATA_WIDTH_IN_BYTES;
+            // empty is meaningful only on the last word
+            vif.master_cb.empty <= (DATA_WIDTH_IN_BYTES - (data.size() % DATA_WIDTH_IN_BYTES)) % DATA_WIDTH_IN_BYTES;
 
-            // If rdy is high then increase word count
-            if (vif.master_cb.rdy && valid) begin
-                word_count--;
-                valid = 1'b0;                
+
+            if (valid) begin
+                @(vif.master_cb iff (vif.master_cb.rdy === 1'b1));
+                valid = 1'b0;
+                words.pop_front();
             end
         end
 
-        // Reset valid after sending
+        // Reset the data inside.
         @(vif.master_cb);
-        vif.master_cb.valid <= 1'b0;
+        vif.CLEAR_MASTER_CB();
     endtask
 
     // Drives the slave signals in a infinite loop
     task drive_slave();
-        bit rdy;
 
         // infinite loop, meaning always alter the rdy value
-        forever begin
-            @(vif.slave_cb);
+        forever @(vif.slave_cb) begin
+            vif.slave_cb.rdy <= rand_bit();
+        end
+    endtask
 
-            std::randomize(rdy) with {
-                rdy dist {
-                    1 := valid_rdy_percentage,
-                    0 := rdy_low_percentage
-                };
+    function bit rand_bit();
+        std::randomize(rand_bit) with {
+            rand_bit dist {
+                1'b1 := VALID_RDY_PERCENTAGE,
+                1'b0 := (100 - VALID_RDY_PERCENTAGE)
             };
-            vif.slave_cb.rdy <= rdy;
-        end
-    endtask
-
-    // Drive data, only for master.
-    task drive(input byte data_to_send[$]);
-        if(this.slave) begin
-            $error("Cannot call task \"drive\" for a slave driver");
-            return;
-        end
-
-        drive_master(data_to_send);
-    endtask
+        };
+    endfunction
 endclass
