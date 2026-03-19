@@ -13,30 +13,6 @@ class avalon_st_driver #(int DATA_WIDTH_IN_BYTES = 4, int unsigned VALID_RDY_PER
         end
     endfunction
 
-        // Drives the master signals based on the received value
-    // ─── Helper: pack a byte queue into words ───────────────────────────────────
-    function automatic void bytes_to_words(
-        input  byte                                          data[$],
-        output logic [DATA_WIDTH_IN_BYTES*8-1:0]             words[$]
-    );
-        int num_words;
-        int byte_idx;
-
-        words.delete();
-        num_words = (data.size() + DATA_WIDTH_IN_BYTES - 1) / DATA_WIDTH_IN_BYTES;
-
-        for (int w = 0; w < num_words; w++) begin
-            logic [DATA_WIDTH_IN_BYTES*8-1:0] word = '0;
-            for (int b = 0; b < DATA_WIDTH_IN_BYTES; b++) begin
-                byte_idx = w * DATA_WIDTH_IN_BYTES + b;
-                if (byte_idx < data.size())
-                    // place byte b at its lane; adjust endianness here if needed
-                    word[b*8 +: 8] = data[byte_idx];
-            end
-            words.push_back(word);
-        end
-    endfunction
-
     task drive_master(byte data[$]);
         logic [DATA_WIDTH_IN_BYTES * $bits(byte) - 1 : 0] words[$];
         int num_words;
@@ -45,7 +21,6 @@ class avalon_st_driver #(int DATA_WIDTH_IN_BYTES = 4, int unsigned VALID_RDY_PER
         // Build the word array from the raw byte stream
         words = {<<DATA_WIDTH_IN_BYTES{data}};
         num_words = words.size();
-        valid     = 1'b0;
 
         // Drive each word
         while (words.size() > 0) begin
@@ -60,8 +35,7 @@ class avalon_st_driver #(int DATA_WIDTH_IN_BYTES = 4, int unsigned VALID_RDY_PER
             vif.master_cb.eop   <= (words.size() == 1);
 
                // iF valid if true, hold it until transaction
-            if (!valid)
-                valid = rand_bit();
+            valid = rand_bit();
             vif.master_cb.valid <= valid;
 
             // Send current first word
@@ -72,7 +46,8 @@ class avalon_st_driver #(int DATA_WIDTH_IN_BYTES = 4, int unsigned VALID_RDY_PER
 
 
             if (valid) begin
-                @(vif.master_cb iff (vif.master_cb.rdy === 1'b1));
+                while (vif.master_cb.rdy == 1'b0)
+                    @(vif.master_cb);
                 valid = 1'b0;
                 words.pop_front();
             end
