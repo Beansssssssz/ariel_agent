@@ -6,7 +6,7 @@ class avalon_st_driver #(int DATA_WIDTH_IN_BYTES = 4, int unsigned VALID_RDY_PER
 
     import agent_pack::queue_byte;
 
-    function new(virtual avalon_st_if #(DATA_WIDTH_IN_BYTES) vif);
+    function new(virtual avalon_st_if #(DATA_WIDTH_IN_BYTES) vif, avalon_st_sequencer sequencer = null);
         this.vif = vif;
         this.sequencer = sequencer;
 
@@ -17,6 +17,7 @@ class avalon_st_driver #(int DATA_WIDTH_IN_BYTES = 4, int unsigned VALID_RDY_PER
         this.run();
     endfunction
 
+    // Runs the loop of the master and the slave
     task run();
         fork
         if(IS_MASTER)
@@ -53,7 +54,7 @@ class avalon_st_driver #(int DATA_WIDTH_IN_BYTES = 4, int unsigned VALID_RDY_PER
         end
     endtask;
 
-    task drive_master(byte data[$]);
+    task drive_master(queue_byte data);
         bit [DATA_WIDTH_IN_BYTES * $bits(byte) - 1 : 0] words[$];
         int num_words;
 
