@@ -25,9 +25,6 @@ module tb ();
 
     queue_byte data_to_send;
 
-    int num_of_messages;
-    int delay_between_messages;
-
     // Interface declaration.
     avalon_st_if#(.DATA_WIDTH_IN_BYTES(DATA_WIDTH_IN_BYTES)) vif (.clk(clk));
     avalon_st_driver #(.DATA_WIDTH_IN_BYTES(DATA_WIDTH_IN_BYTES), .VALID_RDY_PERCENTAGE(VALID_RDY_PERCENTAGE), .IS_MASTER(1'b1)) master_driver;
@@ -39,6 +36,7 @@ module tb ();
     //////////////////////////////////////////////////////////////////////////////
     // Generate clock.
     initial begin
+        sequencer = new();
         master_driver = new (vif, sequencer);
         slave_driver = new (vif);
         clk = 0;
@@ -64,6 +62,5 @@ module tb ();
     // Test logic.
     initial begin
         master_driver.drive_master(data_to_send);
-        $finish("Finished tb");
     end
 endmodule
