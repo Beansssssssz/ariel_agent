@@ -43,11 +43,13 @@ module tb ();
         forever #5 clk = ~clk; 
     end
 
-    // Initialize reset signal.
+    // Reset and stop
     initial begin
         rst_n = 0;
         #20;
         rst_n = 1;
+        #10000
+      	$finish;
     end
 
     // Waves dump.
