@@ -4,21 +4,16 @@
 // Description : Top TB module for Agent Exercise.
 // -----------------------------------------------------------------------------
 
-`include "design.sv"
+`include "avalon_st_if.sv"
 `include "avalon_st_driver.sv"
-
+`include "agent_pack.sv"
 
 module tb ();
 
     //////////////////////////////////////////////////////////////////////////////
-    // Parameters.
+    // Imports.
     //////////////////////////////////////////////////////////////////////////////
-    // Data width.
-    localparam int unsigned DATA_WIDTH_IN_BYTES  = 4;
-    localparam int unsigned VALID_RDY_PERCENTAGE = 70;
-    localparam int unsigned MAX_NUM_OF_MESSAGES = 10;
-    localparam int unsigned MAX_WAIT_BETWEEN_MESSAGES = 100;
-    
+    import agent_pack::*;
 
     //////////////////////////////////////////////////////////////////////////////
     // Declarations.
@@ -27,15 +22,15 @@ module tb ();
     bit clk;
     bit rst_n;
 
+    queue_byte data_to_send;
+
+    int num_of_messages;
+    int delay_between_messages;
+
     // Interface declaration.
     avalon_st_if#(.DATA_WIDTH_IN_BYTES(DATA_WIDTH_IN_BYTES)) vif (.clk(clk));
     avalon_st_driver #(.DATA_WIDTH_IN_BYTES(DATA_WIDTH_IN_BYTES), .VALID_RDY_PERCENTAGE(VALID_RDY_PERCENTAGE), .IS_MASTER(1'b1)) master_driver;
     avalon_st_driver #(.DATA_WIDTH_IN_BYTES(DATA_WIDTH_IN_BYTES), .VALID_RDY_PERCENTAGE(VALID_RDY_PERCENTAGE), .IS_MASTER(1'b0)) slave_driver;
-
-    byte data_to_send[$];
-
-    int num_of_messages;
-    int delay_between_messages;
 
     //////////////////////////////////////////////////////////////////////////////
     // General processes.
@@ -68,7 +63,7 @@ module tb ();
     initial begin
         // randomize how many messages to send
         std::randomize(num_of_messages) with {
-            num_of_messages inside {[1 : MAX_NUM_OF_MESSAGES]}; 
+            num_of_messages inside {[1 : MAX_WAIT_BETWEEN_MESSAGES]}; 
         };
 
         for (int i = 0; i < num_of_messages; i++) begin

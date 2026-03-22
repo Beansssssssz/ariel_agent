@@ -14,9 +14,8 @@ class avalon_st_driver #(int DATA_WIDTH_IN_BYTES = 4, int unsigned VALID_RDY_PER
     endfunction
 
     task drive_master(byte data[$]);
-        logic [DATA_WIDTH_IN_BYTES * $bits(byte) - 1 : 0] words[$];
+        bit [DATA_WIDTH_IN_BYTES * $bits(byte) - 1 : 0] words[$];
         int num_words;
-        bit valid;
 
         // Build the word array from the raw byte stream
         words = {<<DATA_WIDTH_IN_BYTES{data}};
@@ -28,28 +27,34 @@ class avalon_st_driver #(int DATA_WIDTH_IN_BYTES = 4, int unsigned VALID_RDY_PER
             // Sync with clock
             @(vif.master_cb);
 
-            // Send SOP only if its first word
-            vif.master_cb.sop   <= (words.size() == num_words);
+            // Send real word
+            if(rand_bit()) begin
+                // Send SOP only if its first word
+                vif.master_cb.sop <= (words.size() == num_words);
 
-            // Send EOP only if current word is last
-            vif.master_cb.eop   <= (words.size() == 1);
+                // Send EOP only if current word is last
+                vif.master_cb.eop <= (words.size() == 1);
 
-               // iF valid if true, hold it until transaction
-            valid = rand_bit();
-            vif.master_cb.valid <= valid;
+                // Randomize valid
+                vif.master_cb.valid <= rand_bit();;
 
-            // Send current first word
-            vif.master_cb.data  <= words[0];
+                // Send current first word
+                vif.master_cb.data  <= words.pop_front();
 
-            // empty is meaningful only on the last word
-            vif.master_cb.empty <= (DATA_WIDTH_IN_BYTES - (data.size() % DATA_WIDTH_IN_BYTES)) % DATA_WIDTH_IN_BYTES;
+                // empty is meaningful only on the last word
+                vif.master_cb.empty <= (DATA_WIDTH_IN_BYTES - (data.size() % DATA_WIDTH_IN_BYTES)) % DATA_WIDTH_IN_BYTES;
 
+                // Wait until rdy
+                @(vif.master_cb iff (vif.master_cb.rdy) );
 
-            if (valid) begin
-                while (vif.master_cb.rdy == 1'b0)
-                    @(vif.master_cb);
-                valid = 1'b0;
-                words.pop_front();
+            // Generate random data without valid
+            end else begin
+            vif.master_cb.sop <= $urandom();
+            vif.master_cb.eop <= $urandom();
+            vif.master_cb.valid <= 1'b0;
+
+            vif.master_cb.data  <= $urandom();
+            vif.master_cb.empty <= $urandom();
             end
         end
 
