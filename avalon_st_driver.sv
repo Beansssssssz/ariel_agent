@@ -2,9 +2,8 @@ class avalon_st_driver #(int DATA_WIDTH_IN_BYTES = 4, int unsigned VALID_RDY_PER
     import agent_pack::*;
 
     virtual avalon_st_if #(DATA_WIDTH_IN_BYTES) vif;
-
-    import agent_pack::queue_byte;
     avalon_st_sequencer sequencer;
+    import agent_pack::queue_byte;
 
     import agent_pack::queue_byte;
 
@@ -15,7 +14,6 @@ class avalon_st_driver #(int DATA_WIDTH_IN_BYTES = 4, int unsigned VALID_RDY_PER
         this.run();
     endfunction
 
-    // Runs the loop of the master and the slave
     task run();
         fork
         if(IS_MASTER)
