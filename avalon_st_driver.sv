@@ -1,5 +1,5 @@
 class avalon_st_driver #(int DATA_WIDTH_IN_BYTES = 4, int unsigned VALID_RDY_PERCENTAGE = 100, bit IS_MASTER = 1'b1);
-    localparam int MAX_DELAY_BETWEEN_PACKETS = 1000;
+    import agent_pack::*;
 
     virtual avalon_st_if #(DATA_WIDTH_IN_BYTES) vif;
     avalon_st_sequencer sequencer;

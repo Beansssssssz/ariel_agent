@@ -1,7 +1,6 @@
 
 class avalon_st_sequencer #();
-    localparam int MAX_MESSAGE_SIZE_IN_BYTES = 1000;
-    localparam int MAX_NUM_OF_MESSAGES = 10;
+    import  agent_pack::*;
 
     byte array_of_packets[$][$];
 
