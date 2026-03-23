@@ -45,7 +45,7 @@ class avalon_st_driver #(int DATA_WIDTH_IN_BYTES = 4, int unsigned VALID_RDY_PER
                 vif.master_cb.empty <= (DATA_WIDTH_IN_BYTES - (data.size() % DATA_WIDTH_IN_BYTES)) % DATA_WIDTH_IN_BYTES;
 
                 // Wait until rdy
-                @(vif.master_cb iff (vif.master_cb.rdy) );
+                @(vif.master_cb iff (~vif.master_cb.rdy) );
 
             // Generate random data without valid
             end else begin
