@@ -36,7 +36,7 @@ class avalon_st_driver #(int DATA_WIDTH_IN_BYTES = 4, int unsigned VALID_RDY_PER
                 vif.master_cb.eop <= (words.size() == 1);
 
                 // Randomize valid
-                vif.master_cb.valid <= rand_bit();;
+                vif.master_cb.valid <= 1'b1;
 
                 // Send current first word
                 vif.master_cb.data  <= words.pop_front();
