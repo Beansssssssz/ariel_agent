@@ -2,6 +2,8 @@ class avalon_st_driver #(int DATA_WIDTH_IN_BYTES = 4, int unsigned VALID_RDY_PER
 
     virtual avalon_st_if #(DATA_WIDTH_IN_BYTES) vif;
 
+    import agent_pack::queue_byte;
+
     function new(virtual avalon_st_if #(DATA_WIDTH_IN_BYTES) vif);
         this.vif = vif;
 
@@ -13,7 +15,7 @@ class avalon_st_driver #(int DATA_WIDTH_IN_BYTES = 4, int unsigned VALID_RDY_PER
         end
     endfunction
 
-    task drive_master(byte data[$]);
+    task drive_master(queue_byte data);
         bit [DATA_WIDTH_IN_BYTES * $bits(byte) - 1 : 0] words[$];
         int num_words;
 
@@ -23,9 +25,6 @@ class avalon_st_driver #(int DATA_WIDTH_IN_BYTES = 4, int unsigned VALID_RDY_PER
 
         // Drive each word
         while (words.size() > 0) begin
-
-            // Sync with clock
-            @(vif.master_cb);
 
             // Send real word
             if(rand_bit()) begin
@@ -45,23 +44,20 @@ class avalon_st_driver #(int DATA_WIDTH_IN_BYTES = 4, int unsigned VALID_RDY_PER
                 vif.master_cb.empty <= (DATA_WIDTH_IN_BYTES - (data.size() % DATA_WIDTH_IN_BYTES)) % DATA_WIDTH_IN_BYTES;
 
                 // Wait until rdy
-                @(vif.master_cb iff (~vif.master_cb.rdy) );
+                @(vif.master_cb iff (vif.master_cb.rdy) );
 
             // Generate random data without valid
             end else begin
-            vif.master_cb.sop <= $urandom();
-            vif.master_cb.eop <= $urandom();
-            vif.master_cb.valid <= 1'b0;
-
-            vif.master_cb.data  <= $urandom();
-            vif.master_cb.empty <= $urandom();
+                this.randomize_interface_data();
+                vif.master_cb.valid <= 1'b0;
             end
+
+            // Sync with clock
+            @(vif.master_cb);
         end
 
-        // Reset the data inside.
-        @(vif.master_cb);
         vif.CLEAR_MASTER_CB();
-    endtask
+    endtaskgit
 
     // Drives the slave signals in a infinite loop
     task drive_slave();
@@ -79,5 +75,12 @@ class avalon_st_driver #(int DATA_WIDTH_IN_BYTES = 4, int unsigned VALID_RDY_PER
                 1'b0 := (100 - VALID_RDY_PERCENTAGE)
             };
         };
+    endfunction
+
+    function bit randomize_interface_data();
+            vif.master_cb.sop <= $urandom();
+            vif.master_cb.eop <= $urandom();
+            vif.master_cb.data  <= $urandom();
+            vif.master_cb.empty <= $urandom();
     endfunction
 endclass
