@@ -12,10 +12,6 @@ class avalon_st_driver #(int DATA_WIDTH_IN_BYTES = 4, int unsigned VALID_RDY_PER
 
         this.run();
     endfunction
-        this.sequencer = sequencer;
-
-        this.run();
-    endfunction
 
     // Runs the loop of the master and the slave
     task run();
@@ -96,7 +92,7 @@ class avalon_st_driver #(int DATA_WIDTH_IN_BYTES = 4, int unsigned VALID_RDY_PER
         end
 
         vif.CLEAR_MASTER_CB();
-    endtaskgit
+    endtask
 
     // Drives the slave signals in a infinite loop
     task drive_slave();
