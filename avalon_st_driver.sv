@@ -2,6 +2,8 @@ class avalon_st_driver #(int DATA_WIDTH_IN_BYTES = 4, int unsigned VALID_RDY_PER
     import agent_pack::*;
 
     virtual avalon_st_if #(DATA_WIDTH_IN_BYTES) vif;
+
+    import agent_pack::queue_byte;
     avalon_st_sequencer sequencer;
 
     import agent_pack::queue_byte;
@@ -92,7 +94,7 @@ class avalon_st_driver #(int DATA_WIDTH_IN_BYTES = 4, int unsigned VALID_RDY_PER
         end
 
         vif.CLEAR_MASTER_CB();
-    endtask
+    endtaskgit
 
     // Drives the slave signals in a infinite loop
     task drive_slave();
