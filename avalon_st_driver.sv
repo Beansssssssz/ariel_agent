@@ -76,9 +76,9 @@ class avalon_st_driver #(int DATA_WIDTH_IN_BYTES = 4, int unsigned VALID_RDY_PER
     endfunction
 
     function bit randomize_interface_data();
-            vif.master_cb.sop <= $urandom();
-            vif.master_cb.eop <= $urandom();
+            vif.master_cb.sop   <= $urandom();
+            vif.master_cb.eop   <= $urandom();
             vif.master_cb.data  <= $urandom();
-            vif.master_cb.empty <= $urandom();
+            vif.master_cb.empty <= vif.master_cb.eop ? $urandom() : '0;
     endfunction
 endclass
