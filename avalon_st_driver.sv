@@ -16,12 +16,10 @@ class avalon_st_driver #(int DATA_WIDTH_IN_BYTES = 4, int unsigned VALID_RDY_PER
     endfunction
 
     task drive_master(queue_byte data);
-        bit [DATA_WIDTH_IN_BYTES * $bits(byte) - 1 : 0] words[$];
-        int num_words;
 
         // Build the word array from the raw byte stream
-        words = {<<DATA_WIDTH_IN_BYTES{data}};
-        num_words = words.size();
+        bit [DATA_WIDTH_IN_BYTES * $bits(byte) - 1 : 0]  words = {<<DATA_WIDTH_IN_BYTES{data}};
+        int num_words = words.size();
 
         // Drive each word
         while (words.size() > 0) begin
