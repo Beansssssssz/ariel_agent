@@ -1,19 +1,54 @@
 class avalon_st_driver #(int DATA_WIDTH_IN_BYTES = 4, int unsigned VALID_RDY_PERCENTAGE = 100, bit IS_MASTER = 1'b1);
+    import agent_pack::*;
 
     virtual avalon_st_if #(DATA_WIDTH_IN_BYTES) vif;
+    avalon_st_sequencer sequencer;
+    import agent_pack::queue_byte;
 
     import agent_pack::queue_byte;
 
-    function new(virtual avalon_st_if #(DATA_WIDTH_IN_BYTES) vif);
+    function new(virtual avalon_st_if #(DATA_WIDTH_IN_BYTES) vif, avalon_st_sequencer sequencer = null);
         this.vif = vif;
+        this.sequencer = sequencer;
 
-        // If its slave start a fork to always change the data
-        if(~IS_MASTER) begin
-            fork
-                drive_slave();
-            join_none
-        end
+        this.run();
     endfunction
+
+    task run();
+        fork
+        if(IS_MASTER)
+            drive_using_sequencer();
+        else 
+            drive_slave();
+        join_none
+    endtask
+
+    task drive_using_sequencer();
+        byte current_packet[$];
+        int delay_between_packets;
+
+        // Check if sequencer exists
+        if(this.sequencer == null) begin
+            $fatal("sequencer doesn't exist in the class");
+        end
+
+        forever @(vif.slave_cb) begin
+
+            // Randomize time to wait between packets
+            std::randomize(delay_between_packets) with {
+                delay_between_packets inside {[1 : MAX_DELAY_BETWEEN_PACKETS]}; 
+            };
+
+            // Wait the delay
+            #delay_between_packets
+
+            // Request packet from the sequencer
+            this.sequencer.get_new_packet(current_packet);
+
+            // Drive current packet
+            drive_master(current_packet);
+        end
+    endtask;
 
     task drive_master(queue_byte data);
 
@@ -55,7 +90,7 @@ class avalon_st_driver #(int DATA_WIDTH_IN_BYTES = 4, int unsigned VALID_RDY_PER
         end
 
         vif.CLEAR_MASTER_CB();
-    endtask
+    endtaskgit
 
     // Drives the slave signals in a infinite loop
     task drive_slave();

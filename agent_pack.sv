@@ -8,7 +8,8 @@ package agent_pack;
     localparam int unsigned DATA_WIDTH_IN_BYTES  = 4;
     localparam int unsigned VALID_RDY_PERCENTAGE = 70;
     localparam int unsigned MAX_NUM_OF_MESSAGES = 10;
-    localparam int unsigned MAX_WAIT_BETWEEN_MESSAGES = 100;
+    localparam int unsigned MAX_DELAY_BETWEEN_PACKETS = 1000;
+    localparam int unsigned MAX_MESSAGE_SIZE_IN_BYTES = 1000;
 
     //////////////////////////////////////////////////////////////////////////////
     // Typedefs.
